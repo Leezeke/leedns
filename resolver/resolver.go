@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"sync"
 	"time"
 
 	LEC "github.com/Limgmk/leedns/cache"
@@ -17,11 +16,11 @@ import (
 type queryStrategy func(m *D.Msg, r *Resolver) (msg *D.Msg, err error)
 
 type Client struct {
+	count int
 	*ClientConfig
 	currentWeight int
 	c             dns.Client
 	failedTimes   int
-	lock          sync.RWMutex
 }
 
 type ClientConfig struct {
@@ -39,10 +38,9 @@ type Resolver struct {
 	Hosts           Hosts
 	StrategyFun     queryStrategy
 	Clients         []*Client
-	DownClients     []*Client
+	okClientNum     int
 	lruExpiresCache *LEC.LruExpiresCache
 	weightSum       int
-	lock            sync.RWMutex
 	crontab         *cron.Cron
 }
 
@@ -68,6 +66,8 @@ func NewResolver(config *Config) (r *Resolver, err error) {
 	r = new(Resolver)
 
 	r.Clients = createClients(config.ClientsConfig)
+
+	r.okClientNum = len(r.Clients)
 
 	if config.Cache {
 		lruExpiresCache, err := LEC.New(4096)
