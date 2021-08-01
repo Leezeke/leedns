@@ -51,5 +51,9 @@ cache: true
 # 向上游查询的方式, 支持并发(concurrent, 默认)、随机(random)、fallback以及负载均衡(load-balanced)
 strategy: concurrent
 
-# hosts 文件位置
+# 向 upstream 查询出错后重试的最大次数, 出错并重试超过此次数后一定时间内不会再向该 upstream 查询
+# 如果所有 upstream 的都因达到最大重试次数而失效, 则会将所有的 upstream 的重试次数重置, 默认值为 5
+max-retries: 5
+
+# hosts 文件位置, 首先会查询此 hosts 文件, 未设置则不会查询, 即没有默认 hosts 文件
 hosts: /etc/hosts

@@ -32,6 +32,7 @@ type Config struct {
 	ClientsConfig []*ClientConfig
 	Cache         bool
 	Strategy      string
+	MaxRetries    int
 }
 
 type Resolver struct {
@@ -42,6 +43,7 @@ type Resolver struct {
 	lruExpiresCache *LEC.LruExpiresCache
 	weightSum       int
 	crontab         *cron.Cron
+	MaxRetries      int
 }
 
 func createClients(clientsConfig []*ClientConfig) []*Client {
@@ -76,6 +78,12 @@ func NewResolver(config *Config) (r *Resolver, err error) {
 			return nil, err
 		}
 		r.lruExpiresCache = lruExpiresCache
+	}
+
+	if config.MaxRetries == 0 {
+		r.MaxRetries = 5
+	} else {
+		r.MaxRetries = config.MaxRetries
 	}
 
 	switch config.Strategy {

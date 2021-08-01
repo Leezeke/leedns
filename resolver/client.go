@@ -7,8 +7,6 @@ import (
 	D "github.com/miekg/dns"
 )
 
-const maxFailedTimes = 1
-
 func (r *Resolver) copyClients() []*Client {
 	clients := make([]*Client, len(r.Clients))
 	copy(clients, r.Clients)
@@ -17,12 +15,12 @@ func (r *Resolver) copyClients() []*Client {
 
 func (r *Resolver) failedClient(c *Client) {
 	c.failedTimes++
-	if c.failedTimes < maxFailedTimes {
+	if c.failedTimes < r.MaxRetries {
 		return
 	} else {
 		if_reset := true
 		for _, c := range r.Clients {
-			if c.failedTimes < maxFailedTimes {
+			if c.failedTimes < r.MaxRetries {
 				if_reset = false
 				break
 			}
@@ -37,7 +35,7 @@ func (r *Resolver) failedClient(c *Client) {
 
 func (r *Resolver) recoverClient() {
 	for _, c := range r.Clients {
-		if c.failedTimes < maxFailedTimes {
+		if c.failedTimes < r.MaxRetries {
 			continue
 		}
 		m := new(D.Msg)
@@ -79,7 +77,8 @@ func concurrentQuery(m *D.Msg, r *Resolver) (msg *D.Msg, err error) {
 	ch := make(chan result, len(r.Clients))
 	for _, c := range r.Clients {
 		c := c
-		if c.failedTimes >= maxFailedTimes {
+		if c.failedTimes >= r.MaxRetries {
+			ch <- result{nil, nil, nil}
 			continue
 		}
 		go func() {
@@ -94,7 +93,9 @@ func concurrentQuery(m *D.Msg, r *Resolver) (msg *D.Msg, err error) {
 		msg = ret.Msg
 		err = ret.Error
 		if err != nil || msg == nil {
-			r.failedClient(ret.c)
+			if ret.c != nil {
+				r.failedClient(ret.c)
+			}
 			continue
 		}
 		if msg.Answer != nil {
@@ -119,7 +120,7 @@ func randomQuery(m *D.Msg, r *Resolver) (msg *D.Msg, err error) {
 		randIndex := rand.Intn(len(clients))
 		c := clients[randIndex]
 
-		if c.failedTimes >= maxFailedTimes {
+		if c.failedTimes >= r.MaxRetries {
 			clients = append(clients[:randIndex], clients[randIndex+1:]...)
 			continue
 		}
@@ -152,7 +153,7 @@ func loadBalancedQuery(m *D.Msg, r *Resolver) (msg *D.Msg, err error) {
 	for i := len - 1; i >= 0; {
 		c, _ := r.getClientByLoad()
 
-		if c.failedTimes >= maxFailedTimes {
+		if c.failedTimes >= r.MaxRetries {
 			continue
 		}
 
@@ -185,7 +186,7 @@ func loadBalancedQuery(m *D.Msg, r *Resolver) (msg *D.Msg, err error) {
 func fallbackQuery(m *D.Msg, r *Resolver) (msg *D.Msg, err error) {
 	var badResult *D.Msg
 	for _, c := range r.Clients {
-		if c.failedTimes >= maxFailedTimes {
+		if c.failedTimes >= r.MaxRetries {
 			continue
 		}
 

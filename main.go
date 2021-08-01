@@ -27,12 +27,13 @@ type Upstream struct {
 }
 
 type Config struct {
-	Listener  []*Listener `yaml:"listener"`
-	Upstream  []*Upstream `yaml:"upstream"`
-	BootStrap []string    `yaml:"bootstrap"`
-	HostsFile string      `yaml:"hosts"`
-	Cache     bool        `yaml:"cache"`
-	Strategy  string      `yaml:"strategy"`
+	Listener   []*Listener `yaml:"listener"`
+	Upstream   []*Upstream `yaml:"upstream"`
+	BootStrap  []string    `yaml:"bootstrap"`
+	HostsFile  string      `yaml:"hosts"`
+	Cache      bool        `yaml:"cache"`
+	Strategy   string      `yaml:"strategy"`
+	MaxRetries int         `yaml:"max-retries"`
 }
 
 var (
@@ -100,6 +101,7 @@ func main() {
 		ClientsConfig: parseUpstream(config.Upstream),
 		Cache:         config.Cache,
 		Strategy:      config.Strategy,
+		MaxRetries:    config.MaxRetries,
 	}
 	r, err := resolver.NewResolver(resolverConfig)
 	if err != nil {
