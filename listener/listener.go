@@ -77,7 +77,7 @@ func Start(listener []*Listener, resolver *R.Resolver) {
 		}
 	}
 
-	sig := make(chan os.Signal)
+	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	fmt.Printf("\nSignal [%s] received, stopping\n", <-sig)
 }
