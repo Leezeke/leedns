@@ -90,7 +90,7 @@ func (c *generalClient) ExchangeContext(ctx context.Context, m *D.Msg) (msg *D.M
 		err error
 	}
 
-	ch := make(chan result)
+	ch := make(chan result, 1)
 	go func() {
 		msg, rtt, err = c.Client.Exchange(m, net.JoinHostPort(ip.String(), c.port))
 		ch <- result{msg, rtt, err}
